@@ -1,5 +1,5 @@
-import multiprocessing as mp
-import multiprocessing.shared_memory as shm
+from multiprocessing import Lock
+from multiprocessing.managers import BaseManager
 import sysv_ipc
 
 """
@@ -24,26 +24,47 @@ processes takes place in a message queue requiring a carefully designed exchange
 """
 
 
-class Game(mp.Process):
-    offers: shm.SharedMemory
+class Shm():
+    offers: list[int] = []
+    lock: Lock = Lock()
+
+    def get_offers(self):
+        with self.lock:
+            return self.offers
+
+    def offer(self, i: int, nb_cards: int):
+        with self.lock:
+            self.offers[i] = nb_cards
+
+
+class Game():
+    manager: BaseManager
+    shm: Shm = Shm()
     exchanges: sysv_ipc.MessageQueue
 
-    def __init__(self, nb_players: int):
-        super().__init__()
+    def __init__(self):
         self.exchanges = sysv_ipc.MessageQueue(666, sysv_ipc.IPC_CREAT)
-        self.offers = shm.SharedMemory(name="cambiecolo", create=True, size=nb_players)
+
+        BaseManager.register("shm", lambda: self.shm)
+        self.manager = BaseManager(address=("127.0.0.1", 6666), authkey=b"cambiecolo")
+
+        print(self.exchanges)
+        print(self.manager)
 
     def stop(self):
-        self.offers.unlink()
+        print("Stopping game")
+        self.manager.shutdown()
+        self.exchanges.remove()
 
-    def run(self):
+    def start(self):
         # Start game
+        self.manager.start()
 
         while True:
             pass
 
 
 if __name__ == "__main__":
-    g = Game(1)
-    print(g.exchanges)
+    g = Game()
+    g.start()
     g.stop()
