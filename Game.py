@@ -1,7 +1,6 @@
 import multiprocessing as mp
+import multiprocessing.shared_memory as shm
 import sysv_ipc
-
-from Player import Player
 
 """
 Cambiecolo is the environmentalist cousin of the Cambio card game. Its goal is presenting a hand of 5
@@ -26,22 +25,25 @@ processes takes place in a message queue requiring a carefully designed exchange
 
 
 class Game(mp.Process):
-    offers: mp.Array
-    bell_v = mp.Value('i', 0)
-    bell = mp.Event()
-    players: list[Player] = []
-    exchanges = sysv_ipc.MessageQueue(666, sysv_ipc.IPC_CREAT)
+    offers: shm.SharedMemory
+    exchanges: sysv_ipc.MessageQueue
 
     def __init__(self, nb_players: int):
         super().__init__()
+        self.exchanges = sysv_ipc.MessageQueue(666, sysv_ipc.IPC_CREAT)
+        self.offers = shm.SharedMemory(name="cambiecolo", create=True, size=nb_players)
 
-        self.offers = mp.Array('i', [None] * nb_players)
-
-        for i in range(nb_players):
-            self.players.append(Player(i, self.offers, self.exchanges, self.bell_v, self.bell))
+    def stop(self):
+        self.offers.unlink()
 
     def run(self):
         # Start game
 
         while True:
-          pass
+            pass
+
+
+if __name__ == "__main__":
+    g = Game(1)
+    print(g.exchanges)
+    g.stop()
