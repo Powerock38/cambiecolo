@@ -12,12 +12,11 @@ Transports = range(len(T))
 
 Cambiecolo = """
    _________    __  _______  ____________________  __    ____
-  / ____/   |  /  |/  / __ )/  _/ ____/ ____/ __ \/ /   / __ \
+  / ____/   |  /  |/  / __ )/  _/ ____/ ____/ __ \/ /   / __ \\
  / /   / /| | / /|_/ / __  |/ // __/ / /   / / / / /   / / / /
 / /___/ ___ |/ /  / / /_/ // // /___/ /___/ /_/ / /___/ /_/ /
 \____/_/  |_/_/  /_/_____/___/_____/\____/\____/_____/\____/
-"""
-
+""".split("\n")
 
 class Box():
     def __init__(self, screen, h, w, y, x):
@@ -87,7 +86,7 @@ class Player():
         nb_players = self.shm.get_nb_players()
 
         for i in range(nb_players):
-            b = Box(self.screen, 4, 16, 10, 16*i)
+            b = Box(self.screen, 4, 16, 13, 16*i)
             b.addstr(1, 1, "Player " + str(i))
             self.offer_boxes.append(b)
 
@@ -97,7 +96,7 @@ class Player():
             self.screen.addstr(0, 0, "Choose a transport to exchange with player {}".format(self.exchanging_with))
         else:
             self.screen.addstr(0, 0, "Choose a transport to offer...")
-            self.screen.addstr(9, 0, "...or choose an offer to accept")
+            self.screen.addstr(12, 0, "...or choose an offer to accept")
         self.screen.refresh()
 
         for t in range(len(self.transport_boxes)):
@@ -111,13 +110,17 @@ class Player():
                     b.addstr(3, 1, "OFFERING")
             b.refresh()
 
+        for l in range(len(Cambiecolo)):
+            self.screen.addstr(l + 5, 0, Cambiecolo[l])
+
         for i in range(len(offers)):
             nb_cards = offers[i]
             b = self.offer_boxes[i]
             b.clear()
-            b.addstr(1, 1, "Player " + str(i) + (" (you)" if i == self.i else ""))
-            if nb_cards > 0:
-                b.addstr(2, 1, "offers {} cards".format(nb_cards))
+            if self.exchanging_with is None:
+                b.addstr(1, 1, "Player " + str(i) + (" (you)" if i == self.i else ""))
+                if nb_cards > 0:
+                    b.addstr(2, 1, "offers {} cards".format(nb_cards))
             b.refresh()
 
     def start(self):
