@@ -12,6 +12,7 @@ Transports = range(len(T))
 class Shm():
     hands_start: list[list[int]] = []
     offers: list[int] = []
+    playersPID: list[int] = []
     lock = Lock()
     start_game = Event()
     stop_game = Event()
@@ -37,6 +38,7 @@ class Shm():
                 return (None, None)
 
             self.offers.append(0)
+            self.playersPID.append(pid)
             i = len(self.offers) - 1
             hand = self.hands_start.pop()
             hand.sort()
