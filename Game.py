@@ -1,6 +1,8 @@
 from multiprocessing import Event, Lock
 from multiprocessing.managers import BaseManager
+import os
 import random
+import signal
 import sys
 import sysv_ipc
 
@@ -14,6 +16,13 @@ class Shm():
     offers: list[int] = []
     lock = Lock()
     start_game = Event()
+    stop_game = Event()
+    winner: int = None
+
+    def win(self, i: int):
+        with self.lock:
+            self.winner = i
+            self.stop_game.set()
 
     def wait_for_start(self):
         self.start_game.wait()
@@ -82,13 +91,19 @@ class Game():
         self.manager.start()
 
         print("Waiting for all {} players to get ready...".format(self.nb_players))
+        
         self.shm.start_game.wait()
-
         print("Game started")
 
-        while True:
-            pass
-
+        self.shm.stop_game.wait()
+        print("Game finished")
+        #print("Player {} (pid {}) won!".format(self.shm.winner, self.shm.playersPID[self.shm.winner]))
+        for pid in self.shm.playersPID:
+            try:
+                print("Killed pid {}".format(pid))
+                os.kill(pid, signal.SIGINT)
+            except:
+                print("Can't kill pid {}".format(pid))
 
 if __name__ == "__main__":
     try:
