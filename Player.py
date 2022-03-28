@@ -18,6 +18,7 @@ Cambiecolo = """
 \____/_/  |_/_/  /_/_____/___/_____/\____/\____/_____/\____/
 """.split("\n")
 
+
 class Box():
     def __init__(self, screen, h, w, y, x):
         self.screen = screen
@@ -27,9 +28,6 @@ class Box():
         self.h = h
         self.box = self.screen.derwin(self.h, self.w, self.y, self.x)
         self.box.border()
-
-    def addstr(self, y, x, s):
-        self.box.addstr(y, x, s)
 
     def refresh(self):
         self.box.refresh()
@@ -87,28 +85,30 @@ class Player():
 
         for i in range(nb_players):
             b = Box(self.screen, 4, 16, 13, 16*i)
-            b.addstr(1, 1, "Player " + str(i))
+            b.box.addstr(1, 1, "Player " + str(i))
             self.offer_boxes.append(b)
 
     def display_state(self, offers):
         self.screen.clear()
         if self.exchanging_with is not None:
-            self.screen.addstr(0, 0, "Choose a transport to exchange with player {}".format(self.exchanging_with))
+            self.screen.addstr(0, 0, "Choose a transport to exchange with player {} :".format(self.exchanging_with))
         else:
             self.screen.addstr(0, 0, "Choose a transport to offer...")
             self.screen.addstr(12, 0, "...or choose an offer to accept")
-        self.screen.refresh()
 
         for t in range(len(self.transport_boxes)):
             b = self.transport_boxes[t]
             b.clear()
             nb = self.hand.count(t)
             if nb > 0:
-                b.addstr(1, 1, T[t])
-                b.addstr(2, 1, str(nb))
+                b.box.addstr(1, 1, T[t])
+                b.box.addstr(2, 1, str(nb))
+                
+                if self.exchanging_with is not None and offers[self.exchanging_with] <= self.hand.count(t):
+                    b.box.addstr(3, 1, "EXCHANGE", curses.color_pair(1) | curses.A_BOLD)
+
                 if self.offer == t:
-                    b.addstr(3, 1, "OFFERING")
-            b.refresh()
+                    b.box.addstr(3, 1, "OFFERING", curses.color_pair(1) | curses.A_BOLD)
 
         for l in range(len(Cambiecolo)):
             self.screen.addstr(l + 5, 0, Cambiecolo[l])
@@ -118,10 +118,14 @@ class Player():
             b = self.offer_boxes[i]
             b.clear()
             if self.exchanging_with is None:
-                b.addstr(1, 1, "Player " + str(i) + (" (you)" if i == self.i else ""))
+                b.box.addstr(1, 1, "Player " + str(i) + (" (you)" if i == self.i else ""))
                 if nb_cards > 0:
-                    b.addstr(2, 1, "offers {} cards".format(nb_cards))
-            b.refresh()
+                    b.box.addstr(2, 1, "offers {} cards".format(nb_cards), curses.A_BOLD if self.i != i else curses.A_NORMAL)
+            elif self.exchanging_with == i:
+                b.box.addstr(1, 1, "Click to", curses.A_BOLD)
+                b.box.addstr(2, 1, "cancel", curses.A_BOLD)
+
+        self.screen.refresh()
 
     def start(self):
         print("Waiting for game to start...")
@@ -155,6 +159,7 @@ class Player():
                                 self.exchanging_with = None
                             else:
                                 self.exchanging_with = i
+                            self.reset_offer()
                         break
 
     def stop(self):
@@ -233,6 +238,8 @@ def main(stdscr):
     p = Player(stdscr)
     curses.curs_set(0)
     curses.mousemask(1)
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_GREEN)
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_RED)
     p.start()
     p.stop()
 

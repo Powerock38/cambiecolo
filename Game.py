@@ -51,7 +51,11 @@ class Shm():
 
     def get_nb_players(self) -> int:
         with self.lock:
-            return len(self.offers)
+            return len(self.playersPID)
+
+    def get_winner(self) -> int:
+        with self.lock:
+            return self.winner
 
     def get_offers(self) -> list[int]:
         with self.lock:
@@ -121,7 +125,7 @@ class Game():
         self.shm.wait_for_stop()
 
         print("Game finished")
-        #print("Player {} (pid {}) won!".format(self.shm.winner, self.shm.playersPID[self.shm.winner]))
+        print("\n!!! Player {} (pid {}) won !!!\n".format(self.shm.get_winner(), self.shm.get_playersPID()[self.shm.get_winner()]))
         print("PIDs:", self.shm.get_playersPID())
 
         for pid in self.shm.get_playersPID():
