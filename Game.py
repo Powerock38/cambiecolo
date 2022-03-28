@@ -9,7 +9,6 @@ import sysv_ipc
 T = ["airplane", "car", "train", "bike", "shoes"]
 Transports = range(len(T))
 
-
 class Shm():
     hands_start: list[list[int]] = []
     playersPID: list[int] = []
@@ -19,6 +18,9 @@ class Shm():
     stop_game = Event()
     winner: int = None
 
+    def __init__(self) -> None:
+        pass
+
     def win(self, i: int):
         with self.lock:
             self.winner = i
@@ -26,6 +28,9 @@ class Shm():
 
     def wait_for_start(self):
         self.start_game.wait()
+
+    def wait_for_stop(self):
+        self.stop_game.wait()
 
     def get_hand(self, pid) -> tuple[list[int], int]:
         with self.lock:
@@ -52,6 +57,10 @@ class Shm():
         with self.lock:
             return self.offers
 
+    def get_playersPID(self) -> list[int]:
+        with self.lock:
+            return self.playersPID
+
     def offer(self, i: int, nb_cards: int):
         with self.lock:
             self.offers[i] = nb_cards
@@ -59,16 +68,26 @@ class Shm():
 
 class Game():
     manager: BaseManager
-    shm: Shm = Shm()
+    ishm: Shm = Shm()
+    shm: Shm
     exchanges: sysv_ipc.MessageQueue
     nb_players: int
 
     def __init__(self, nb_players: int):
         self.nb_players = nb_players
 
-        self.exchanges = sysv_ipc.MessageQueue(666, sysv_ipc.IPC_CREAT)
+        # clean old IPC mq
+        try:
+            mq = sysv_ipc.MessageQueue(666)
+            mq.remove()
+            print("old messagequeue removed")
+        except:
+            pass
 
-        BaseManager.register("shm", lambda: self.shm)
+        self.exchanges = sysv_ipc.MessageQueue(666, sysv_ipc.IPC_CREX)
+        
+        BaseManager.register("shm", lambda: self.ishm)
+
         self.manager = BaseManager(address=("127.0.0.1", 6666), authkey=b"cambiecolo")
 
         # Hands generation
@@ -78,8 +97,8 @@ class Game():
         print("Cards pool         :", cards)
         random.shuffle(cards)
         print("Cards pool shuffled:", cards)
-        self.shm.hands_start = [cards[i:i + 5] for i in range(0, len(cards), 5)]
-        print("Cards:", self.shm.hands_start)
+        self.ishm.hands_start = [cards[i:i + 5] for i in range(0, len(cards), 5)]
+        print("Cards:", self.ishm.hands_start)
 
     def stop(self):
         print("Stopping game")
@@ -89,16 +108,23 @@ class Game():
     def start(self):
         # Start game
         self.manager.start()
+        self.manager.connect()
+        self.shm = self.manager.shm()
 
         print("Waiting for all {} players to get ready...".format(self.nb_players))
         
-        self.shm.start_game.wait()
-        print("Game started")
+        self.shm.wait_for_start()
 
-        self.shm.stop_game.wait()
+        print("Game started")
+        print("PIDs:", self.shm.get_playersPID())
+
+        self.shm.wait_for_stop()
+
         print("Game finished")
         #print("Player {} (pid {}) won!".format(self.shm.winner, self.shm.playersPID[self.shm.winner]))
-        for pid in self.shm.playersPID:
+        print("PIDs:", self.shm.get_playersPID())
+
+        for pid in self.shm.get_playersPID():
             try:
                 print("Killed pid {}".format(pid))
                 os.kill(pid, signal.SIGINT)
@@ -108,10 +134,10 @@ class Game():
 if __name__ == "__main__":
     try:
         n = int(sys.argv[1])
-        if not 1 <= n <= 5:
+        if not 2 <= n <= 5:
             raise ValueError
     except:
-        print("Usage: {} <nb_players [1;5]>".format(sys.argv[0]))
+        print("Usage: {} <nb_players [2;5]>".format(sys.argv[0]))
         exit()
 
     g = Game(n)

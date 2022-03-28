@@ -123,7 +123,7 @@ class Player():
     def start(self):
         print("Waiting for game to start...")
         self.shm.wait_for_start()
-
+        curses.beep()
         self.init_display()
 
         while True:
