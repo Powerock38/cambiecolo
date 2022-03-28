@@ -24,6 +24,7 @@ class Shm():
                 return (None, None)
 
             self.playersPID.append(pid)
+            self.offers.append(0)
             i = len(self.playersPID) - 1
             hand = self.hands_start.pop()
             hand.sort()
@@ -33,6 +34,10 @@ class Shm():
                 self.start_game.set()
 
             return (hand, i)
+
+    def get_nb_players(self) -> int:
+        with self.lock:
+            return len(self.playersPID)
 
     def get_offers(self) -> list[int]:
         with self.lock:
@@ -58,7 +63,7 @@ class Game():
         self.manager = BaseManager(address=("127.0.0.1", 6666), authkey=b"cambiecolo")
 
         # Hands generation
-        possible_transports = list(Transports)[nb_players - 1:]
+        possible_transports = list(Transports)[-nb_players:]
         print("Possible transports:", possible_transports)
         cards = possible_transports * 5
         print("Cards pool         :", cards)
