@@ -12,7 +12,6 @@ Transports = range(len(T))
 
 class Shm():
     hands_start: list[list[int]] = []
-    playersPID: list[int] = []
     offers: list[int] = []
     lock = Lock()
     start_game = Event()
@@ -32,9 +31,8 @@ class Shm():
             if len(self.hands_start) == 0:
                 return (None, None)
 
-            self.playersPID.append(pid)
             self.offers.append(0)
-            i = len(self.playersPID) - 1
+            i = len(self.offers) - 1
             hand = self.hands_start.pop()
             hand.sort()
 
@@ -46,7 +44,7 @@ class Shm():
 
     def get_nb_players(self) -> int:
         with self.lock:
-            return len(self.playersPID)
+            return len(self.offers)
 
     def get_offers(self) -> list[int]:
         with self.lock:
@@ -97,21 +95,14 @@ class Game():
 
         self.shm.stop_game.wait()
         print("Game finished")
-        #print("Player {} (pid {}) won!".format(self.shm.winner, self.shm.playersPID[self.shm.winner]))
-        for pid in self.shm.playersPID:
-            try:
-                print("Killed pid {}".format(pid))
-                os.kill(pid, signal.SIGINT)
-            except:
-                print("Can't kill pid {}".format(pid))
 
 if __name__ == "__main__":
     try:
         n = int(sys.argv[1])
-        if not 1 <= n <= 5:
+        if not 2 <= n <= 5:
             raise ValueError
     except:
-        print("Usage: {} <nb_players [1;5]>".format(sys.argv[0]))
+        print("Usage: {} <nb_players [2;5]>".format(sys.argv[0]))
         exit()
 
     g = Game(n)
