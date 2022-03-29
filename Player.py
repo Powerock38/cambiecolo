@@ -105,7 +105,7 @@ class Player():
                 b.box.addstr(2, 1, str(nb))
                 
                 if self.exchanging_with is not None and offers[self.exchanging_with] <= self.hand.count(t):
-                    b.box.addstr(3, 1, "EXCHANGE", curses.color_pair(1) | curses.A_BOLD)
+                    b.box.addstr(3, 1, "EXCHANGE", curses.color_pair(2) | curses.A_BOLD)
 
                 if self.offer == t:
                     b.box.addstr(3, 1, "OFFERING", curses.color_pair(1) | curses.A_BOLD)
